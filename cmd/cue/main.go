@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
@@ -22,13 +20,13 @@ type Library struct {
 }
 
 type Theme struct {
-	Source string `json:"source"`
-	URL    string `json:"url"`
+	Source string `yaml:"source"`
+	URL    string `yaml:"url"`
 }
 
 type MediaItem struct {
-	Title string `json:"title"`
-	Theme Theme  `json:"theme"`
+	Title string `yaml:"title"`
+	Theme Theme  `yaml:"theme"`
 }
 
 type UniqueID struct {
@@ -63,7 +61,7 @@ func loadDatabase(databases []string) (map[string]MediaItem, error) {
 			return nil, err
 		}
 		// same keys get overwritten every loop on purpose
-		err = json.Unmarshal(dbData, &db)
+		err = yaml.Unmarshal(dbData, &db)
 		if err != nil {
 			return nil, err
 		}
@@ -96,6 +94,7 @@ func lookupMediaItem(nfo NFO, database map[string]MediaItem) (MediaItem, bool) {
 }
 
 func main() {
+	downloaders := newDownloaders()
 	cfg, err := loadConfig(os.Args[1])
 	if err != nil {
 		fmt.Println("Couldn't load config: ", err)
@@ -145,10 +144,11 @@ func main() {
 						fmt.Printf("No entry for %s, skipping\n", nfo.Title)
 						continue
 					}
-
-					cmd := exec.Command("yt-dlp", "-x", "--audio-format", "mp3", "-o", "theme.mp3", mediaItem.Theme.URL)
-					cmd.Dir = itemPath
-					err = cmd.Run()
+					downloader := downloaders[mediaItem.Theme.Source]
+					err = downloader.Download(mediaItem.Theme.URL, itemPath)
+					if err != nil {
+						fmt.Printf("Download failed for %s: %v\n", nfo.Title, err)
+					}
 				}
 			}
 		}
