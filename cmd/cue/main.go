@@ -26,7 +26,7 @@ type Theme struct {
 	URL    string `json:"url"`
 }
 
-type Entry struct {
+type MediaItem struct {
 	Title string `json:"title"`
 	Theme Theme  `json:"theme"`
 }
@@ -41,38 +41,74 @@ type NFO struct {
 	UniqueIDs []UniqueID `xml:"uniqueid"`
 }
 
-func main() {
-	// read in the config file
-	cfgPath := os.Args[1]
-	cfgData, err := os.ReadFile(cfgPath)
+func loadConfig(path string) (Config, error) {
+	cfgData, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Println("Error reading config:", err)
-		return
+		return Config{}, err
 	}
+
 	var cfg Config
 	err = yaml.Unmarshal(cfgData, &cfg)
 	if err != nil {
-		fmt.Println("Error parsing config:", err)
-		return
+		return Config{}, err
 	}
+	return cfg, nil
+}
 
-	// build database, later keys win
-	database := map[string]Entry{}
-	for _, dbPath := range cfg.Database {
+func loadDatabase(databases []string) (map[string]MediaItem, error) {
+	var db map[string]MediaItem
+	for _, dbPath := range databases {
 		dbData, err := os.ReadFile(dbPath)
 		if err != nil {
-			fmt.Println("Error reading database:", err)
-			return
+			return nil, err
 		}
-		err = json.Unmarshal(dbData, &database)
+		// same keys get overwritten every loop on purpose
+		err = json.Unmarshal(dbData, &db)
 		if err != nil {
-			fmt.Println("Error parsing database:", err)
-			return
+			return nil, err
 		}
 	}
+	return db, nil
+}
 
-	// iterate over each library, then each entry inside a library
+func parseNFO(path string) (NFO, error) {
+	nfoData, err := os.ReadFile(path)
+	if err != nil {
+		return NFO{}, err
+	}
 
+	var nfo NFO
+	err = xml.Unmarshal(nfoData, &nfo)
+	if err != nil {
+		return NFO{}, err
+	}
+	return nfo, nil
+}
+
+func lookupMediaItem(nfo NFO, database map[string]MediaItem) (MediaItem, bool) {
+	for _, id := range nfo.UniqueIDs {
+		if id.Type == "tmdb" {
+			item, found := database[id.Value]
+			return item, found
+		}
+	}
+	return MediaItem{}, false
+}
+
+func main() {
+	cfg, err := loadConfig(os.Args[1])
+	if err != nil {
+		fmt.Println("Couldn't load config: ", err)
+		os.Exit(1)
+	}
+
+	database, err := loadDatabase(cfg.Database)
+	if err != nil {
+		fmt.Println("Couldn't load database: ", err)
+		os.Exit(1)
+	}
+
+	// library
 	for _, library := range cfg.Library {
 		fmt.Println(library.Path)
 		items, err := os.ReadDir(library.Path)
@@ -81,6 +117,7 @@ func main() {
 			return
 		}
 
+		// library folders
 		for _, i := range items {
 			fmt.Println("- " + i.Name())
 			itemPath := filepath.Join(library.Path, i.Name())
@@ -90,37 +127,26 @@ func main() {
 				return
 			}
 
+			// items inside library folders
 			for _, f := range itemFiles {
 				fmt.Println("-- " + f.Name())
 
 				if filepath.Ext(f.Name()) == ".nfo" {
+
 					nfoPath := filepath.Join(itemPath, f.Name())
-					nfoData, err := os.ReadFile(nfoPath)
+					nfo, err := parseNFO(nfoPath)
 					if err != nil {
-						fmt.Println("Error reading NFO:", err)
-						return
+						fmt.Printf("Couldn't load NFO: %v \n\n %v ", nfoPath, err)
+						os.Exit(1)
 					}
 
-					var nfo NFO
-					err = xml.Unmarshal(nfoData, &nfo)
-					if err != nil {
-						fmt.Println("Error parsing NFO:", err)
-						return
-					}
-
-					var entry Entry
-					for _, id := range nfo.UniqueIDs {
-						if id.Type == "tmdb" {
-							entry = database[id.Value]
-						}
-					}
-
-					if entry.Theme.URL == "" {
-						fmt.Printf("No theme found for %s, skipping\n", nfo.Title)
+					mediaItem, found := lookupMediaItem(nfo, database)
+					if !found {
+						fmt.Printf("No entry for %s, skipping\n", nfo.Title)
 						continue
 					}
 
-					cmd := exec.Command("yt-dlp", "-x", "--audio-format", "mp3", "-o", "theme.mp3", entry.Theme.URL)
+					cmd := exec.Command("yt-dlp", "-x", "--audio-format", "mp3", "-o", "theme.mp3", mediaItem.Theme.URL)
 					cmd.Dir = itemPath
 					err = cmd.Run()
 				}
