@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"gopkg.in/yaml.v3"
 )
@@ -95,7 +97,13 @@ func lookupMediaItem(nfo NFO, database map[string]MediaItem) (MediaItem, bool) {
 
 func main() {
 	downloaders := newDownloaders()
-	cfg, err := loadConfig(os.Args[1])
+
+	// flags
+	configPath := flag.String("config", "config.yaml", "path to config file")
+	down := flag.Int("down", 10, "maximum concurrent downloads")
+	flag.Parse()
+
+	cfg, err := loadConfig(*configPath)
 	if err != nil {
 		fmt.Println("Couldn't load config: ", err)
 		os.Exit(1)
@@ -106,6 +114,11 @@ func main() {
 		fmt.Println("Couldn't load database: ", err)
 		os.Exit(1)
 	}
+
+	// concurrent handling
+	var wg sync.WaitGroup
+	// max
+	maxDownloads := make(chan struct{}, *down)
 
 	// library
 	for _, library := range cfg.Library {
@@ -145,12 +158,20 @@ func main() {
 						continue
 					}
 					downloader := downloaders[mediaItem.Theme.Source]
-					err = downloader.Download(mediaItem.Theme.URL, itemPath)
-					if err != nil {
-						fmt.Printf("Download failed for %s: %v\n", nfo.Title, err)
-					}
+					maxDownloads <- struct{}{}
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						defer func() { <-maxDownloads }()
+						err := downloader.Download(mediaItem.Theme.URL, itemPath)
+						if err != nil {
+							fmt.Printf("Download failed for %s: %v\n", nfo.Title, err)
+						}
+					}()
 				}
 			}
 		}
 	}
+
+	wg.Wait()
 }

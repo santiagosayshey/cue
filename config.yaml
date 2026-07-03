@@ -1,0 +1,10 @@
+# paths to your media libraries
+libraries:
+  - path: testdata/library/tv
+    type: tv
+  - path: testdata/library/movies
+    type: movies
+
+# databases in priority order (last wins)
+databases:
+  - testdata/databases/community.yaml
