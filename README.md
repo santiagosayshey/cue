@@ -13,12 +13,12 @@ Each top-level key is an upstream media ID; a TMDB ID found in the item’s NFO 
 "584":
   title: 2 Fast 2 Furious
   assets:
-    theme:
-      source: youtube
+    - source: youtube
       url: https://www.youtube.com/watch?v=YvHbvnIttec
-    poster:
-      source: gdrive
+      filename: theme.mp3
+    - source: gdrive
       url: https://drive.google.com/file/d/example/view
+      filename: poster.jpg
 ```
 
 Currently, YouTube (via `yt-dlp`) and Google Drive are the only accepted sources.
