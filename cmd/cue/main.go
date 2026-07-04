@@ -188,8 +188,9 @@ func main() {
 							err := downloader.Download(asset.URL, itemPath, asset.Filename)
 							if err != nil {
 								fmt.Printf("Download failed for %s (%s): %v\n", nfo.Title, asset.Filename, err)
+								return
 							}
-							fmt.Printf("Download completed for %s (%s)", nfo.Title, asset.Filename)
+							fmt.Printf("Download completed for %s (%s)\n", nfo.Title, asset.Filename)
 						}()
 					}
 				}
