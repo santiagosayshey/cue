@@ -4,8 +4,11 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"gopkg.in/yaml.v3"
@@ -55,16 +58,31 @@ func loadConfig(path string) (Config, error) {
 	return cfg, nil
 }
 
+func readPath(path string) ([]byte, error) {
+	if strings.HasPrefix(path, "http") {
+		resp, err := http.Get(path)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("fetching %s: %s", path, resp.Status)
+		}
+		return io.ReadAll(resp.Body)
+	}
+	return os.ReadFile(path)
+}
+
 func loadDatabase(databases []string) (map[string]MediaItem, error) {
 	var db map[string]MediaItem
 	for _, dbPath := range databases {
-		dbData, err := os.ReadFile(dbPath)
+		dbData, err := readPath(dbPath)
 		if err != nil {
 			return nil, err
 		}
 		// same keys get overwritten every loop on purpose
-		err = yaml.Unmarshal(dbData, &db)
-		if err != nil {
+		if err := yaml.Unmarshal(dbData, &db); err != nil {
 			return nil, err
 		}
 	}
