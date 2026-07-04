@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -19,7 +20,11 @@ type GDrive struct{}
 func (yt Youtube) Download(url string, destPath string) error {
 	cmd := exec.Command("yt-dlp", "-x", "--audio-format", "mp3", "-o", "theme.mp3", url)
 	cmd.Dir = destPath
-	return cmd.Run()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("yt-dlp: %w\n%s", err, out)
+	}
+	return nil
 }
 
 func (gd GDrive) Download(url string, destPath string) error {
