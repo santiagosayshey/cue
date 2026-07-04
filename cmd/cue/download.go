@@ -44,7 +44,13 @@ func (gd GDrive) Download(url string, destPath string, filename string) error {
 }
 
 func (h HTTP) Download(url string, destPath string, filename string) error {
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "cue/1.0")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
