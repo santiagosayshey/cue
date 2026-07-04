@@ -24,14 +24,15 @@ type Library struct {
 	Type string `yaml:"type"`
 }
 
-type Theme struct {
-	Source string `yaml:"source"`
-	URL    string `yaml:"url"`
+type Asset struct {
+	Source   string `yaml:"source"`
+	URL      string `yaml:"url"`
+	Filename string `yaml:"filename"`
 }
 
 type MediaItem struct {
-	Title string `yaml:"title"`
-	Theme Theme  `yaml:"theme"`
+	Title  string  `yaml:"title"`
+	Assets []Asset `yaml:"assets"`
 }
 
 type UniqueID struct {
@@ -175,17 +176,24 @@ func main() {
 						fmt.Printf("No entry for %s, skipping\n", nfo.Title)
 						continue
 					}
-					downloader := downloaders[mediaItem.Theme.Source]
-					maxDownloads <- struct{}{}
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						defer func() { <-maxDownloads }()
-						err := downloader.Download(mediaItem.Theme.URL, itemPath)
-						if err != nil {
-							fmt.Printf("Download failed for %s: %v\n", nfo.Title, err)
+
+					for _, asset := range mediaItem.Assets {
+						downloader, ok := downloaders[asset.Source]
+						if !ok {
+							fmt.Printf("Unknown source %q for %s, skipping\n", asset.Source, nfo.Title)
+							continue
 						}
-					}()
+						maxDownloads <- struct{}{}
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							defer func() { <-maxDownloads }()
+							err := downloader.Download(asset.URL, itemPath, asset.Filename)
+							if err != nil {
+								fmt.Printf("Download failed for %s (%s): %v\n", nfo.Title, asset.Filename, err)
+							}
+						}()
+					}
 				}
 			}
 		}
