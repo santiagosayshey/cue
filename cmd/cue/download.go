@@ -19,7 +19,7 @@ type GDrive struct{}
 type HTTP struct{}
 
 func (yt Youtube) Download(url string, destPath string, filename string) error {
-	cmd := exec.Command("yt-dlp", "-x", "--audio-format", "mp3", "-o", filename, url)
+	cmd := exec.Command("yt-dlp", "--js-runtimes", "node", "-x", "--audio-format", "mp3", "-o", filename, url)
 	cmd.Dir = destPath
 	out, err := cmd.CombinedOutput()
 	if err != nil {
