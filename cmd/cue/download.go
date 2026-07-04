@@ -16,6 +16,7 @@ type Downloader interface {
 
 type Youtube struct{}
 type GDrive struct{}
+type HTTP struct{}
 
 func (yt Youtube) Download(url string, destPath string, filename string) error {
 	cmd := exec.Command("yt-dlp", "-x", "--audio-format", "mp3", "-o", filename, url)
@@ -42,9 +43,28 @@ func (gd GDrive) Download(url string, destPath string, filename string) error {
 	return err
 }
 
+func (h HTTP) Download(url string, destPath string, filename string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %s: %s", resp.Status, url)
+	}
+	file, err := os.Create(filepath.Join(destPath, filename))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = io.Copy(file, resp.Body)
+	return err
+}
+
 func newDownloaders() map[string]Downloader {
 	return map[string]Downloader{
 		"youtube": Youtube{},
 		"gdrive":  GDrive{},
+		"http":    HTTP{},
 	}
 }
