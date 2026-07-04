@@ -21,7 +21,7 @@ Each top-level key is an upstream media ID; a TMDB ID found in the item’s NFO 
       filename: poster.jpg
 ```
 
-Currently, YouTube (via `yt-dlp`) and Google Drive are the only accepted sources.
+Currently supported sources are YouTube (via yt-dlp), Google Drive, and direct HTTP.
 
 ## Configuration
 
