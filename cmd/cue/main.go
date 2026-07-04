@@ -141,7 +141,6 @@ func main() {
 
 	// library
 	for _, library := range cfg.Library {
-		fmt.Println(library.Path)
 		items, err := os.ReadDir(library.Path)
 		if err != nil {
 			fmt.Println("Error reading library folder:", err)
@@ -150,7 +149,6 @@ func main() {
 
 		// library folders
 		for _, i := range items {
-			fmt.Println("- " + i.Name())
 			itemPath := filepath.Join(library.Path, i.Name())
 			itemFiles, err := os.ReadDir(itemPath)
 			if err != nil {
@@ -160,7 +158,6 @@ func main() {
 
 			// items inside library folders
 			for _, f := range itemFiles {
-				fmt.Println("-- " + f.Name())
 
 				if filepath.Ext(f.Name()) == ".nfo" {
 
@@ -173,7 +170,7 @@ func main() {
 
 					mediaItem, found := lookupMediaItem(nfo, database)
 					if !found {
-						fmt.Printf("No entry for %s, skipping\n", nfo.Title)
+						// fmt.Printf("No entry for %s, skipping\n", nfo.Title)
 						continue
 					}
 
@@ -192,6 +189,7 @@ func main() {
 							if err != nil {
 								fmt.Printf("Download failed for %s (%s): %v\n", nfo.Title, asset.Filename, err)
 							}
+							fmt.Printf("Download completed for %s (%s)", nfo.Title, asset.Filename)
 						}()
 					}
 				}
