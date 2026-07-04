@@ -1,8 +1,5 @@
 # cue
-
-Cue is a declarative cli tool for managing local media assets with YAML. It scans your media library, matches items against upstream databases using NFO metadata, and imports configured assets to the correct folders.
-
-Currently, it supports theme music, but the same approach can be extended to posters, artwork, trailers, and other media assets.
+Cue is a declarative cli tool for managing local media assets with YAML. It scans your media library, matches items against upstream databases using NFO metadata, and downloads configured assets to the correct folders. Assets are generic; any combination of source, URL, and filename can be defined, so new asset types like theme music, posters, or trailers can be added without changing any code.
 
 ## Databases
 
