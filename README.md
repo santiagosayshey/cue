@@ -40,7 +40,7 @@ libraries:
     type: tv
 
 databases:
-  - databases/community.yaml # I want this large community database for most of my media
+  - https://github.com/foo/bar/database.yaml # I want this community database for most of my media
   - databases/local.yaml # There are some specific overrides I keep on top
 ```
 
