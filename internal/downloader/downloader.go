@@ -20,7 +20,6 @@ type HTTP struct{}
 
 func (yt Youtube) Download(url string, destPath string, filename string) error {
 	cmd := exec.Command("yt-dlp",
-		"--cookies-from-browser", "firefox",
 		"--js-runtimes", "node",
 		"-x", "--audio-format", "mp3",
 		"-o", filename, url)
