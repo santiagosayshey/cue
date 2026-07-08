@@ -66,11 +66,11 @@ func main() {
 						os.Exit(1)
 					}
 
-					mediaItem, found := database.Lookup(p_nfo.UIDMap(), db)
+					entry, found := database.Lookup(p_nfo.UIDMap(), db)
 					if !found {
 						continue
 					}
-					for _, asset := range mediaItem.Assets {
+					for _, asset := range entry.Assets {
 						downloader, ok := downloaders[asset.Source]
 						if !ok {
 							fmt.Printf("Unknown source %q for %s, skipping\n", asset.Source, p_nfo.Title)
