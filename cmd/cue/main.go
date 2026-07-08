@@ -13,48 +13,56 @@ import (
 )
 
 func main() {
+	err := run()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	configPath := flag.String("config", "config.yaml", "path to config file")
-	down := flag.Int("down", 10, "maximum concurrent downloads")
+	concurrency := flag.Int("concurrency ", 10, "maximum concurrent downloads")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		fmt.Println("Couldn't load config:", err)
-		os.Exit(1)
+		return fmt.Errorf("loading config: %w", err)
 	}
 
 	db, err := database.Load(cfg.Database)
 	if err != nil {
-		fmt.Println("Couldn't load database:", err)
-		os.Exit(1)
+		return fmt.Errorf("loading database: %w", err)
 	}
 
 	downloaders := downloader.NewDownloaders()
-	pool := downloader.NewPool(*down)
+	pool := downloader.NewPool(*concurrency)
 
 	for _, library := range cfg.Library {
 		folders, err := filesystem.GetFolders(library.Path)
 		if err != nil {
-			fmt.Println("Error reading library folder:", err)
-			os.Exit(1)
+			return fmt.Errorf("reading library folder %s: %w", library.Path, err)
 		}
+
 		for _, folderPath := range folders {
 			nfoPath, err := filesystem.GetFile(folderPath, ".nfo")
 			if err != nil {
 				fmt.Println("Skipping folder, no NFO found:", folderPath)
 				continue
 			}
+
 			var info nfo.Info
-			err = nfo.Parse(nfoPath, &info)
-			if err != nil {
+			if err := nfo.Parse(nfoPath, &info); err != nil {
 				fmt.Printf("Couldn't load NFO: %v\n", nfoPath)
 				continue
 			}
+
 			for _, uid := range info.UniqueIDs {
 				entry, found := db[uid.Value]
 				if !found {
 					continue
 				}
+
 				for _, asset := range entry.Assets {
 					sourceDownloader, ok := downloaders[asset.Source]
 					if !ok {
@@ -68,4 +76,5 @@ func main() {
 	}
 
 	pool.Wait()
+	return nil
 }
