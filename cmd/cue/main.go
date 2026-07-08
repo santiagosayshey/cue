@@ -10,6 +10,7 @@ import (
 	"github.com/santiagosayshey/cue/internal/downloader"
 	"github.com/santiagosayshey/cue/internal/filesystem"
 	"github.com/santiagosayshey/cue/internal/nfo"
+	"github.com/santiagosayshey/cue/internal/stats"
 )
 
 func main() {
@@ -22,8 +23,9 @@ func main() {
 
 func run() error {
 	configPath := flag.String("config", "config.yaml", "path to config file")
-	concurrency := flag.Int("concurrency ", 10, "maximum concurrent downloads")
+	concurrency := flag.Int("concurrency", 10, "maximum concurrent downloads")
 	flag.Parse()
+	var st stats.Stats
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
@@ -36,15 +38,23 @@ func run() error {
 	}
 
 	downloaders := downloader.NewDownloaders()
-	pool := downloader.NewPool(*concurrency)
+	pool := downloader.NewPool(*concurrency, func(title, filename string, err error) {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[error] %s - %s: %v\n", title, filename, err)
+			return
+		}
+		fmt.Printf("[success] %s - %s\n", title, filename)
+	})
 
 	for _, library := range cfg.Library {
+		st.IncrementLibraries()
 		folders, err := filesystem.GetFolders(library.Path)
 		if err != nil {
 			return fmt.Errorf("reading library folder %s: %w", library.Path, err)
 		}
 
 		for _, folderPath := range folders {
+			st.IncrementFolders()
 			nfoPath, err := filesystem.GetFile(folderPath, ".nfo")
 			if err != nil {
 				fmt.Println("Skipping folder, no NFO found:", folderPath)
@@ -62,6 +72,7 @@ func run() error {
 				if !found {
 					continue
 				}
+				st.IncrementMatched()
 
 				for _, asset := range entry.Assets {
 					sourceDownloader, ok := downloaders[asset.Source]
@@ -69,12 +80,14 @@ func run() error {
 						fmt.Printf("Unknown source %q for %s, skipping\n", asset.Source, info.Title)
 						continue
 					}
+					st.IncrementDownloads()
 					pool.Queue(sourceDownloader, asset.URL, folderPath, asset.Filename, info.Title)
 				}
 			}
 		}
 	}
-
+	fmt.Printf("Scanned %v libraries... %v folders, %v matched\n", st.Libraries, st.Folders, st.Matched)
+	fmt.Printf("Downloading %v asset(s) (concurrency %v)...\n", st.Downloads, *concurrency)
 	pool.Wait()
 	return nil
 }

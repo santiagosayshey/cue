@@ -1,18 +1,19 @@
 package downloader
 
 import (
-	"fmt"
 	"sync"
 )
 
 type Pool struct {
-	wg  sync.WaitGroup
-	sem chan struct{}
+	wg     sync.WaitGroup
+	sem    chan struct{}
+	onDone func(title, filename string, err error)
 }
 
-func NewPool(max int) *Pool {
+func NewPool(max int, onDone func(title, filename string, err error)) *Pool {
 	return &Pool{
-		sem: make(chan struct{}, max),
+		sem:    make(chan struct{}, max),
+		onDone: onDone,
 	}
 }
 
@@ -22,11 +23,8 @@ func (p *Pool) Queue(d Downloader, url string, destPath string, filename string,
 	go func() {
 		defer p.wg.Done()
 		defer func() { <-p.sem }()
-		if err := d.Download(url, destPath, filename); err != nil {
-			fmt.Printf("Download failed for %s (%s): %v\n", title, filename, err)
-			return
-		}
-		fmt.Printf("Download completed for %s (%s)\n", title, filename)
+		err := d.Download(url, destPath, filename)
+		p.onDone(title, filename, err)
 	}()
 }
 
