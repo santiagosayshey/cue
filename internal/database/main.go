@@ -51,13 +51,3 @@ func Load(databases []string) (map[string]Entry, error) {
 	}
 	return db, nil
 }
-
-func Lookup(uids map[string]string, db map[string]Entry) (Entry, bool) {
-	tmdbID, ok := uids["tmdb"]
-	if !ok {
-		return Entry{}, false
-	}
-
-	item, found := db[tmdbID]
-	return item, found
-}

@@ -1,4 +1,4 @@
-package main
+package downloader
 
 import (
 	"fmt"
@@ -71,7 +71,7 @@ func (h HTTP) Download(url string, destPath string, filename string) error {
 	return err
 }
 
-func newDownloaders() map[string]Downloader {
+func NewDownloaders() map[string]Downloader {
 	return map[string]Downloader{
 		"youtube": Youtube{},
 		"gdrive":  GDrive{},
