@@ -23,7 +23,7 @@ func main() {
 
 func run() error {
 	configPath := flag.String("config", "config.yaml", "path to config file")
-	concurrency := flag.Int("concurrency", 10, "maximum concurrent downloads")
+	concurrency := flag.Int("concurrency", 3, "maximum concurrent downloads")
 	flag.Parse()
 	var st stats.Stats
 

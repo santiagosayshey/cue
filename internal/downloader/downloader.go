@@ -8,17 +8,33 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Downloader interface {
 	Download(url string, destPath string, filename string) error
 }
 
-type Youtube struct{}
+type Youtube struct {
+	mu           sync.Mutex
+	lastDownload time.Time
+}
+
 type GDrive struct{}
 type HTTP struct{}
 
-func (yt Youtube) Download(url string, destPath string, filename string) error {
+func (yt *Youtube) Download(url string, destPath string, filename string) error {
+	yt.mu.Lock()
+	defer yt.mu.Unlock()
+
+	if !yt.lastDownload.IsZero() {
+		wait := 5*time.Second - time.Since(yt.lastDownload)
+		if wait > 0 {
+			time.Sleep(wait)
+		}
+	}
+
 	cmd := exec.Command("yt-dlp",
 		"--quiet",
 		"--no-warnings",
@@ -28,6 +44,7 @@ func (yt Youtube) Download(url string, destPath string, filename string) error {
 		"-o", filename, url)
 	cmd.Dir = destPath
 	out, err := cmd.CombinedOutput()
+	yt.lastDownload = time.Now()
 	if err != nil {
 		msg := strings.TrimSpace(string(out))
 		if msg == "" {
@@ -80,7 +97,7 @@ func (h HTTP) Download(url string, destPath string, filename string) error {
 
 func NewDownloaders() map[string]Downloader {
 	return map[string]Downloader{
-		"youtube": Youtube{},
+		"youtube": &Youtube{},
 		"gdrive":  GDrive{},
 		"http":    HTTP{},
 	}

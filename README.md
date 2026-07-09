@@ -48,13 +48,15 @@ Multiple database sources can be used together. When the same media item appears
 Cue currently supports the following flags:
 
 ```sh
-cue -config config.yaml -down 10
+cue -config config.yaml -concurrency 3
 ```
 
-| Flag      |       Default | Description                             |
-| --------- | ------------: | --------------------------------------- |
-| `-config` | `config.yaml` | Path to the Cue configuration file.     |
-| `-down`   |          `10` | Maximum number of concurrent downloads. |
+| Flag           |       Default | Description                             |
+| -------------- | ------------: | --------------------------------------- |
+| `-config`      | `config.yaml` | Path to the Cue configuration file.     |
+| `-concurrency` |           `3` | Maximum number of concurrent downloads. |
+
+YouTube downloads are run one at a time with a 5 second pause between them to reduce YouTube rate-limit and bot-check failures.
 
 ## Installation
 
