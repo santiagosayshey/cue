@@ -19,6 +19,7 @@ type Downloader interface {
 type Youtube struct {
 	mu           sync.Mutex
 	lastDownload time.Time
+	cookiesPath  string
 }
 
 type GDrive struct{}
@@ -35,13 +36,20 @@ func (yt *Youtube) Download(url string, destPath string, filename string) error 
 		}
 	}
 
-	cmd := exec.Command("yt-dlp",
+	args := []string{
 		"--quiet",
 		"--no-warnings",
 		"--no-progress",
 		"--js-runtimes", "node",
 		"-x", "--audio-format", "mp3",
-		"-o", filename, url)
+		"-o", filename,
+	}
+	if yt.cookiesPath != "" {
+		args = append(args, "--cookies", yt.cookiesPath)
+	}
+	args = append(args, url)
+
+	cmd := exec.Command("yt-dlp", args...)
 	cmd.Dir = destPath
 	out, err := cmd.CombinedOutput()
 	yt.lastDownload = time.Now()
@@ -95,9 +103,9 @@ func (h HTTP) Download(url string, destPath string, filename string) error {
 	return err
 }
 
-func NewDownloaders() map[string]Downloader {
+func NewDownloaders(cookiesPath string) map[string]Downloader {
 	return map[string]Downloader{
-		"youtube": &Youtube{},
+		"youtube": &Youtube{cookiesPath: cookiesPath},
 		"gdrive":  GDrive{},
 		"http":    HTTP{},
 	}

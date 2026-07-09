@@ -24,6 +24,7 @@ func main() {
 func run() error {
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	concurrency := flag.Int("concurrency", 3, "maximum concurrent downloads")
+	cookiesPath := flag.String("cookies", "", "path to YouTube cookies file")
 	flag.Parse()
 	var st stats.Stats
 
@@ -37,7 +38,7 @@ func run() error {
 		return fmt.Errorf("loading database: %w", err)
 	}
 
-	downloaders := downloader.NewDownloaders()
+	downloaders := downloader.NewDownloaders(*cookiesPath)
 	var jobs []downloader.Job
 
 	for _, library := range cfg.Library {

@@ -48,15 +48,32 @@ Multiple database sources can be used together. When the same media item appears
 Cue currently supports the following flags:
 
 ```sh
-cue -config config.yaml -concurrency 3
+cue -config config.yaml -concurrency 3 -cookies youtube.cookies.txt
 ```
 
-| Flag           |       Default | Description                             |
-| -------------- | ------------: | --------------------------------------- |
-| `-config`      | `config.yaml` | Path to the Cue configuration file.     |
-| `-concurrency` |           `3` | Maximum number of concurrent downloads. |
+| Flag           |       Default | Description                                      |
+| -------------- | ------------: | ------------------------------------------------ |
+| `-config`      | `config.yaml` | Path to the Cue configuration file.              |
+| `-concurrency` |           `3` | Maximum number of concurrent downloads.          |
+| `-cookies`     |          none | Path to a YouTube cookies file for `yt-dlp`.     |
 
 YouTube downloads are run one at a time with a 5 second pause between them to reduce YouTube rate-limit and bot-check failures.
+
+### YouTube cookies
+
+Some YouTube downloads may fail with `Sign in to confirm you're not a bot`. If that happens, export YouTube cookies in Netscape format and pass the file with `-cookies`.
+
+For Firefox:
+
+1. Open a new private window.
+2. Log into YouTube.
+3. In the same tab, visit `https://www.youtube.com/robots.txt`.
+4. Use the `cookies.txt` Firefox extension to export the private-window YouTube cookies.
+5. Save the file as `youtube.cookies.txt`.
+6. Close the private window.
+
+> [!CAUTION]
+> A cookies file is account access. Keep it private, mount it read-only in Docker, and consider using a throwaway YouTube account.
 
 ## Installation
 
@@ -89,7 +106,9 @@ services:
     volumes:
       - ./config.yaml:/config/config.yaml:ro
       - ./databases:/config/databases:ro
+      - ./youtube.cookies.txt:/config/youtube.cookies.txt:ro
       - /path/to/your/media:/media
+    command: ["-cookies", "/config/youtube.cookies.txt"]
 ```
 
 Cue is designed to run to completion, so the container does not need to stay running. You can run it manually, schedule it with cron, or trigger it from another automation tool.
