@@ -38,13 +38,7 @@ func run() error {
 	}
 
 	downloaders := downloader.NewDownloaders()
-	pool := downloader.NewPool(*concurrency, func(title, filename string, err error) {
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "[error] %s - %s: %v\n", title, filename, err)
-			return
-		}
-		fmt.Printf("[success] %s - %s\n", title, filename)
-	})
+	var jobs []downloader.Job
 
 	for _, library := range cfg.Library {
 		st.IncrementLibraries()
@@ -81,13 +75,29 @@ func run() error {
 						continue
 					}
 					st.IncrementDownloads()
-					pool.Queue(sourceDownloader, asset.URL, folderPath, asset.Filename, info.Title)
+					jobs = append(jobs, downloader.Job{
+						Downloader: sourceDownloader,
+						URL:        asset.URL,
+						DestPath:   folderPath,
+						Filename:   asset.Filename,
+						Title:      info.Title,
+					})
 				}
 			}
 		}
 	}
 	fmt.Printf("Scanned %v libraries... %v folders, %v matched\n", st.Libraries, st.Folders, st.Matched)
 	fmt.Printf("Downloading %v asset(s) (concurrency %v)...\n", st.Downloads, *concurrency)
+	pool := downloader.NewPool(*concurrency, func(title, filename string, err error) {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[error] %s - %s: %v\n", title, filename, err)
+			return
+		}
+		fmt.Printf("[success] %s - %s\n", title, filename)
+	})
+	for _, job := range jobs {
+		pool.Queue(job)
+	}
 	pool.Wait()
 	return nil
 }

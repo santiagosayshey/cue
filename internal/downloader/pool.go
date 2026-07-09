@@ -10,6 +10,14 @@ type Pool struct {
 	onDone func(title, filename string, err error)
 }
 
+type Job struct {
+	Downloader Downloader
+	URL        string
+	DestPath   string
+	Filename   string
+	Title      string
+}
+
 func NewPool(max int, onDone func(title, filename string, err error)) *Pool {
 	return &Pool{
 		sem:    make(chan struct{}, max),
@@ -17,14 +25,14 @@ func NewPool(max int, onDone func(title, filename string, err error)) *Pool {
 	}
 }
 
-func (p *Pool) Queue(d Downloader, url string, destPath string, filename string, title string) {
+func (p *Pool) Queue(job Job) {
 	p.sem <- struct{}{}
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
 		defer func() { <-p.sem }()
-		err := d.Download(url, destPath, filename)
-		p.onDone(title, filename, err)
+		err := job.Downloader.Download(job.URL, job.DestPath, job.Filename)
+		p.onDone(job.Title, job.Filename, err)
 	}()
 }
 
