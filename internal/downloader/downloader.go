@@ -20,13 +20,21 @@ type HTTP struct{}
 
 func (yt Youtube) Download(url string, destPath string, filename string) error {
 	cmd := exec.Command("yt-dlp",
+		"--quiet",
+		"--no-warnings",
+		"--no-progress",
 		"--js-runtimes", "node",
 		"-x", "--audio-format", "mp3",
 		"-o", filename, url)
 	cmd.Dir = destPath
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("yt-dlp: %w\n%s", err, out)
+		msg := strings.TrimSpace(string(out))
+		if msg == "" {
+			return fmt.Errorf("yt-dlp: %w", err)
+		}
+		lines := strings.Split(msg, "\n")
+		return fmt.Errorf("yt-dlp: %w: %s", err, strings.TrimSpace(lines[len(lines)-1]))
 	}
 	return nil
 }
